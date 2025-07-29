@@ -9,5 +9,8 @@
     "express": "^4.19.2",
     "@supabase/supabase-js": "^2.44.4",
     "axios": "^1.7.2"
+  },
+  "engines": {
+    "node": "18.x"
   }
 }
