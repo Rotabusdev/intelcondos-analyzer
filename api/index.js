@@ -18,7 +18,7 @@ app.post('/api', async (req, res) => {
   }
   const documentId = newDocument.id;
 
-  const supabaseUrl = process.env.SUPABASE_URL;
+  const supabaseUrl = 'https://tlukxqnwrdxprwyedvlz.supabase.co'; // URL colocada diretamente no código
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const supabase = createClient(supabaseUrl, supabaseKey);
 
