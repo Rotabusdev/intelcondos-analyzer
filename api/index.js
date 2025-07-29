@@ -18,9 +18,11 @@ app.post('/api', async (req, res) => {
   }
   const documentId = newDocument.id;
 
+  // --- MODIFICAÇÃO PARA TESTE FINAL ---
   const supabaseUrl = 'https://tlukxqnwrdxprwyedvlz.supabase.co'; // URL colocada diretamente no código
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const supabase = createClient(supabaseUrl, supabaseKey);
+  // --- FIM DA MODIFICAÇÃO ---
 
   try {
     console.log(`Starting analysis for document: ${documentId}`);
@@ -115,4 +117,4 @@ app.post('/api', async (req, res) => {
   }
 });
 
-module.exports = app; //teste
+module.exports = app;
