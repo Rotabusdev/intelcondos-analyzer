@@ -8,7 +8,7 @@ const app = express();
 app.use(express.json());
 
 app.post('/api', async (req, res) => {
-  console.log('Webhook received!');
+  console.log('Webhook received! Code version: 29/07-FINAL');
 
   const { record: newDocument } = req.body;
   console.log('Payload received:', JSON.stringify(req.body, null, 2));
