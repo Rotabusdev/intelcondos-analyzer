@@ -7,7 +7,7 @@
   },
   "dependencies": {
     "express": "^4.19.2",
-    "@supabase/supabase-js": "^2.44.4",
+    "@supabase/supabase-js": "^2.44.4", // <--- GARANTA QUE O @ ESTÁ AQUI
     "axios": "^1.7.2"
   },
   "engines": {
