@@ -4,20 +4,17 @@ const { createClient } = require('@supabase/supabase-js');
 const axios = require('axios');
 
 const app = express();
-app.use(express.json()); // Habilita o parsing de JSON no corpo da requisição
+app.use(express.json());
 
-// Endpoint que será chamado pelo Webhook do Supabase
 app.post('/api', async (req, res) => {
   console.log('Webhook received!');
 
-  // O Supabase envia os dados do novo registro no corpo (body)
   const { record: newDocument } = req.body;
-  const documentId = newDocument.id;
-
-  if (!documentId) {
+  if (!newDocument || !newDocument.id) {
     console.error('Document ID not found in webhook payload');
     return res.status(400).send('Document ID is missing');
   }
+  const documentId = newDocument.id;
 
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -32,7 +29,6 @@ app.post('/api', async (req, res) => {
       throw new Error('API keys for OpenAI or Google Vision are not set');
     }
 
-    // Busca os detalhes do documento no Supabase
     const { data: document, error: docError } = await supabase
       .from('document_uploads')
       .select('*')
@@ -43,7 +39,6 @@ app.post('/api', async (req, res) => {
 
     await supabase.from('document_uploads').update({ analysis_status: 'analyzing' }).eq('id', documentId);
 
-    // --- A GRANDE MUDANÇA: BAIXANDO O ARQUIVO EM NODE.JS ---
     console.log('Downloading file from Supabase Storage...');
     const { data: fileData, error: downloadError } = await supabase.storage
       .from('documents')
@@ -51,10 +46,8 @@ app.post('/api', async (req, res) => {
 
     if (downloadError) throw downloadError;
 
-    // Converte o Blob para um Buffer e depois para Base64 (método robusto em Node.js)
     const buffer = Buffer.from(await fileData.arrayBuffer());
     const base64 = buffer.toString('base64');
-    // --- FIM DA MUDANÇA ---
 
     console.log('Extracting text with Google Vision API...');
     const visionResponse = await axios.post(
@@ -115,11 +108,10 @@ app.post('/api', async (req, res) => {
 
   } catch (error) {
     console.error("Analysis error:", error.response ? error.response.data : error.message);
-    // Atualiza o status para 'failed' no Supabase
     await supabase.from("document_uploads").update({ analysis_status: "failed" }).eq("id", documentId);
     res.status(500).send({ success: false, error: error.message });
   }
 });
 
-// Exporta o app para a Vercel
 module.exports = app;
+```4.  Salve o arquivo.
