@@ -1,5 +1,5 @@
 {
-  "name": "intelcondos-analyzer",
+  "name": "intelicondos-analyzer",
   "version": "1.0.0",
   "description": "Serviço de análise de documentos para Intelcondos",
   "scripts": {
@@ -9,6 +9,8 @@
     "express": "^4.19.2",
     "@supabase/supabase-js": "^2.44.4",
     "axios": "^1.7.2"
+  },
+  "engines": {
+    "node": "20.x"
   }
 }
-
