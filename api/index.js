@@ -18,7 +18,7 @@ app.post('/api', async (req, res) => {
   }
   const documentId = newDocument.id;
 
-  // --- MODIFICAÇÃO PARA TESTE FINAL ---
+  // --- MODIFICAÇÃO PARA TESTE ---
   const supabaseUrl = 'https://tlukxqnwrdxprwyedvlz.supabase.co'; // URL colocada diretamente no código
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const supabase = createClient(supabaseUrl, supabaseKey);
@@ -88,6 +88,7 @@ app.post('/api', async (req, res) => {
     );
 
     const analysisText = openaiResponse.data.choices[0].message.content;
+    console.log("[DEBUG] Resposta da OpenAI antes do parse:", analysisText); // <-- NOVA LINHA DE DEBUG
     const financialData = JSON.parse(analysisText);
 
     console.log('Creating financial data record...');
