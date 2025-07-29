@@ -11,6 +11,7 @@ app.post('/api', async (req, res) => {
   console.log('Webhook received!');
 
   const { record: newDocument } = req.body;
+  console.log('Payload received:', JSON.stringify(req.body, null, 2));
   if (!newDocument || !newDocument.id) {
     console.error('Document ID not found in webhook payload');
     return res.status(400).send('Document ID is missing');
@@ -108,7 +109,7 @@ app.post('/api', async (req, res) => {
     res.status(200).send({ success: true, message: 'Analysis completed successfully' });
 
   } catch (error) {
-    console.error("Analysis error:", error.response ? error.response.data : error.message);
+    console.error("Analysis error:", error.stack || error.message);
     await supabase.from("document_uploads").update({ analysis_status: "failed" }).eq("id", documentId);
     res.status(500).send({ success: false, error: error.message });
   }
