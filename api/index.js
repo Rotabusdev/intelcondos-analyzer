@@ -89,7 +89,6 @@ app.post('/api', async (req, res) => {
 
     const analysisText = openaiResponse.data.choices[0].message.content;
     
-    // --- CORREÇÃO PARA RESPOSTA DA OPENAI ---
     // Limpa a resposta da OpenAI para extrair apenas o JSON
     let jsonString = analysisText;
     const jsonMatch = analysisText.match(/\{[\s\S]*\}/); // Procura pelo JSON dentro da string
@@ -97,18 +96,20 @@ app.post('/api', async (req, res) => {
       jsonString = jsonMatch[0];
     }
     const financialData = JSON.parse(jsonString);
-    // --- FIM DA CORREÇÃO ---
 
     console.log('Creating financial data record...');
-    await supabase.from('dados_financeiros_processados').insert({
+    // --- CORREÇÃO FINAL: Apontando para a tabela correta ---
+    await supabase.from('financial_analysis').insert({
       condominium_id: document.condominium_id,
-      period_month: financialData.reference_month,
-      period_year: financialData.reference_year,
+      document_upload_id: document.id, // Adicionei esta linha, pode ser útil
       total_revenue: financialData.total_revenue,
       total_expenses: financialData.total_expenses,
       reserve_fund: financialData.reserve_fund,
+      // default_amount: financialData.default_amount, // Verifique se esta coluna existe
       cost_per_unit: financialData.cost_per_unit,
-      personnel_expense_percentage: financialData.personnel_expense_percentage
+      personnel_expense_percentage: financialData.personnel_expense_percentage,
+      period_month: financialData.reference_month,
+      period_year: financialData.reference_year
     });
 
     await supabase.from('document_uploads').update({
