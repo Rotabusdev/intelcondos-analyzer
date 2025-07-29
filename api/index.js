@@ -18,11 +18,11 @@ app.post('/api', async (req, res) => {
   }
   const documentId = newDocument.id;
 
-  // --- MODIFICAÇÃO PARA TESTE ---
-  const supabaseUrl = 'https://tlukxqnwrdxprwyedvlz.supabase.co'; // URL colocada diretamente no código
+  // --- URL Fixa para Teste ---
+  const supabaseUrl = 'https://tlukxqnwrdxprwyedvlz.supabase.co'; 
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const supabase = createClient(supabaseUrl, supabaseKey);
-  // --- FIM DA MODIFICAÇÃO ---
+  // --- Fim da Modificação ---
 
   try {
     console.log(`Starting analysis for document: ${documentId}`);
@@ -88,8 +88,16 @@ app.post('/api', async (req, res) => {
     );
 
     const analysisText = openaiResponse.data.choices[0].message.content;
-    console.log("[DEBUG] Resposta da OpenAI antes do parse:", analysisText); // <-- NOVA LINHA DE DEBUG
-    const financialData = JSON.parse(analysisText);
+    
+    // --- CORREÇÃO PARA RESPOSTA DA OPENAI ---
+    // Limpa a resposta da OpenAI para extrair apenas o JSON
+    let jsonString = analysisText;
+    const jsonMatch = analysisText.match(/\{[\s\S]*\}/); // Procura pelo JSON dentro da string
+    if (jsonMatch) {
+      jsonString = jsonMatch[0];
+    }
+    const financialData = JSON.parse(jsonString);
+    // --- FIM DA CORREÇÃO ---
 
     console.log('Creating financial data record...');
     await supabase.from('dados_financeiros_processados').insert({
