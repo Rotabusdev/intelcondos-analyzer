@@ -1,3 +1,4 @@
+// Servidor de análise de documentos
 // api/index.js
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
@@ -114,4 +115,4 @@ app.post('/api', async (req, res) => {
 });
 
 module.exports = app;
-```4.  Salve o arquivo.
+```4.  Salve o arquivo.`
