@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import axios from 'axios';
-import { DocumentProcessorServiceClient } from '@google-cloud/documentai';
+import { DocumentProcessorServiceClient } from '@google-cloud/documentai'; // Sua importação
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -40,6 +40,7 @@ export default async function handler(req, res) {
     const buffer = Buffer.from(await fileData.arrayBuffer());
     const base64 = buffer.toString('base64');
 
+    // SEÇÃO DO GOOGLE DOCUMENT AI (SUA VERSÃO)
     const docAIClient = new DocumentProcessorServiceClient();
     const name = `projects/${process.env.GCP_PROJECT_ID}/locations/${process.env.GCP_LOCATION}/processors/${process.env.GCP_PROCESSOR_ID}`;
     const request = {
@@ -53,7 +54,9 @@ export default async function handler(req, res) {
     const [result] = await docAIClient.processDocument(request);
     const { text } = result.document;
     if (!text) throw new Error('Document AI did not extract any text.');
+    // FIM DA SEÇÃO GOOGLE DOCUMENT AI
 
+    // INÍCIO DA SEÇÃO OPENAI (COMBINANDO PARTES)
     const openaiResponse = await axios.post(
       'https://api.openai.com/v1/chat/completions',
       {
@@ -65,12 +68,12 @@ export default async function handler(req, res) {
           },
           {
             role: 'user',
-            content: `Analise este documento financeiro de condomínio:\n\n${text}`,
+            content: `Analise este documento financeiro de condomínio:\n\n${text}`, // Usando 'text' do Document AI
           },
         ],
         temperature: 0.1,
       },
-      { headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` } }
+      { headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` } } // Seu header
     );
 
     let analysisText = openaiResponse.data.choices[0].message.content;
@@ -82,7 +85,11 @@ export default async function handler(req, res) {
     await supabase.from('financial_analysis').insert({
       condominium_id: document.condominium_id,
       document_upload_id: document.id,
-      ...financialData,
+      ...financialData, // Usa o spread para inserir todos os campos do financialData
+      // Se houver campos que você quer garantir que são do financialData.campo específico,
+      // como a versão do GitHub fez (period_month, period_year), você pode adicioná-los:
+      // period_month: financialData.reference_month,
+      // period_year: financialData.reference_year
     });
 
     await supabase.from('document_uploads').update({
