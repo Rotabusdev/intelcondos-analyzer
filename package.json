@@ -1,4 +1,4 @@
-  {
+{
   "name": "intelcondos-analyzer",
   "version": "1.0.0",
   "type": "module",
@@ -8,12 +8,12 @@
     "dev": "vercel dev"
   },
   "dependencies": {
-    "@google-cloud/documentai": "9.3.0",
-    "openai": "^4.20.1",
-    "pdf-parse": "^1.1.1",
-    "express": "^4.19.2",
+    "@google-cloud/documentai": "^9.3.0",
     "@supabase/supabase-js": "^2.44.0",
-    "axios": "^1.7.2"
+    "axios": "^1.7.2",
+    "express": "^4.19.2",
+    "openai": "^4.20.1",
+    "pdf-parse": "^1.1.1"
   },
   "engines": {
     "node": "20.x"
