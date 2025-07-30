@@ -1,4 +1,4 @@
-// Servidor de análise de documentos com Google Document AI
+// Servidor de análise de documentos com Google Document AI e OpenAI
 // api/index.js
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');

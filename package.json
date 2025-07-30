@@ -1,7 +1,7 @@
   {
   "name": "intelicondos-analyzer",
   "version": "1.0.0",
-  "description": "Serviço de análise de documentos para Intelcondos",
+  "description": "Serviço de análise de documentos para Intelicondos",
   "scripts": {
     "start": "node api/index.js"
   },
@@ -10,7 +10,7 @@
     "@supabase/supabase-js": "^2.44.4",
     "axios": "^1.7.2",
     "@google-cloud/documentai": "^5.0.1"
-    },
+      },
   "engines": {
     "node": "20.x"
   }
