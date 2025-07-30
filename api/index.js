@@ -1,4 +1,4 @@
-// Forçar novo deploy
+// Forçar novo deploy de novo
 import { createClient } from '@supabase/supabase-js';
 import { extractTextFromPdfBuffer } from './documentAI';
 import { analyzeFinancialText } from './openAI';
