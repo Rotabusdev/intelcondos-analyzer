@@ -1,7 +1,7 @@
 // Forçar novo deploy de novo
 import { createClient } from '@supabase/supabase-js';
-import { extractTextFromPdfBuffer } from './documentAI';
-import { analyzeFinancialText } from './openAI';
+import { extractTextFromPdfBuffer } from './documentAI.js'; // Adicionar .js
+import { analyzeFinancialText } from './openAI.js';   // Adicionar .js
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
