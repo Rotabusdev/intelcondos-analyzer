@@ -11,6 +11,7 @@ app.use(express.json());
 
 app.post('/api', async (req, res) => {
   console.log('Webhook received! Using production architecture.!'); // Forçando redeploy
+
   const { record: newDocument } = req.body;
   if (!newDocument || !newDocument.id) {
     return res.status(400).send('Document ID is missing');
@@ -22,7 +23,7 @@ app.post('/api', async (req, res) => {
   
   try {
     // --- CONFIGURAÇÃO DA CONTA DE SERVIÇO DO GOOGLE (MÉTODO BASE64) ---
-    const base64Key = process.env.GCP_SA_KEY;
+    const base64Key = process.env.GCP_SA_KEY_B64;
 
     // VERIFICAÇÃO DE SEGURANÇA: Garante que a variável de ambiente existe antes de usá-la.
     if (!base64Key) {
