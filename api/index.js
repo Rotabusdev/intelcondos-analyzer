@@ -1,4 +1,4 @@
-// Versão de Produção Final
+// Versão de Produção Final e Completa
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 const axios = require('axios');
@@ -8,6 +8,8 @@ const app = express();
 app.use(express.json());
 
 app.post('/api', async (req, res) => {
+  console.log('Webhook received! Using final Document AI architecture.');
+
   const { record: newDocument } = req.body;
   if (!newDocument || !newDocument.id) {
     return res.status(400).send('Document ID is missing');
@@ -18,10 +20,10 @@ app.post('/api', async (req, res) => {
   const supabaseUrl = 'https://tlukxqnwrdxprwyedvlz.supabase.co';
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const supabase = createClient(supabaseUrl, supabaseKey);
-
+  
   try {
     console.log(`Starting analysis for document: ${documentId}`);
-
+    
     const { data: document, error: docError } = await supabase
       .from('document_uploads')
       .select('id, storage_path, condominium_id, file_type')
@@ -36,11 +38,11 @@ app.post('/api', async (req, res) => {
       .from('documents')
       .download(document.storage_path);
     if (downloadError) throw downloadError;
-
+    
     const buffer = Buffer.from(await fileData.arrayBuffer());
     const base64 = buffer.toString('base64');
-
-    console.log('Extracting text with Google Document AI...');
+    
+    console.log('Extracting text and structure with Google Document AI...');
     const docAIClient = new DocumentProcessorServiceClient();
     const name = `projects/${process.env.GCP_PROJECT_ID}/locations/${process.env.GCP_LOCATION}/processors/${process.env.GCP_PROCESSOR_ID}`;
     const request = {
@@ -50,6 +52,7 @@ app.post('/api', async (req, res) => {
         mimeType: document.file_type || 'application/pdf',
       },
     };
+
     const [result] = await docAIClient.processDocument(request);
     const { text } = result.document;
 
@@ -57,16 +60,31 @@ app.post('/api', async (req, res) => {
       throw new Error('Document AI did not extract any text.');
     }
 
+    // --- LÓGICA DA OPENAI RESTAURADA ---
     console.log(`Text extracted! Length: ${text.length}. Analyzing with OpenAI...`);
-    const openaiResponse = await axios.post(/* ... sua lógica da OpenAI ... */);
-    const analysisText = openaiResponse.data.choices[0].message.content;
+    const openaiKey = process.env.OPENAI_API_KEY;
+    const openaiResponse = await axios.post(
+      'https://api.openai.com/v1/chat/completions',
+      {
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: `Você é um especialista em análise de documentos financeiros de condomínios. Analise o texto extraído e retorne APENAS um JSON válido com os seguintes campos: {"total_revenue": número,"total_expenses": número,"reserve_fund": número,"default_amount": número,"cost_per_unit": número,"personnel_expense_percentage": número,"reference_month": número (1-12 ),"reference_year": número}. Extraia apenas valores numéricos reais do documento. Se um campo não for encontrado, use 0.` },
+          { role: 'user', content: `Analise este documento financeiro de condomínio:\n\n${text}` }
+        ],
+        temperature: 0.1
+      },
+      { headers: { 'Authorization': `Bearer ${openaiKey}` } }
+    );
 
+    const analysisText = openaiResponse.data.choices[0].message.content;
+    
     let jsonString = analysisText;
     const jsonMatch = analysisText.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       jsonString = jsonMatch[0];
     }
     const financialData = JSON.parse(jsonString);
+    // --- FIM DA LÓGICA DA OPENAI ---
 
     console.log('Creating financial data record...');
     await supabase.from('financial_analysis').insert({
