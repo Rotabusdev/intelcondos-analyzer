@@ -1,4 +1,4 @@
-// Versão de Produção Final e Completa
+// Versão de Produção Final com correção de autenticação
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 const axios = require('axios');
@@ -8,7 +8,7 @@ const app = express();
 app.use(express.json());
 
 app.post('/api', async (req, res) => {
-  console.log('Webhook received! Using final Document AI architecture.');
+  console.log('Webhook received! Using Document AI architecture.');
 
   const { record: newDocument } = req.body;
   if (!newDocument || !newDocument.id) {
@@ -16,10 +16,8 @@ app.post('/api', async (req, res) => {
   }
   const documentId = newDocument.id;
 
-  // Usando a URL fixa que sabemos que funciona
-  const supabaseUrl = 'https://tlukxqnwrdxprwyedvlz.supabase.co';
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const supabase = createClient(supabaseUrl, supabaseKey);
+  // Voltando a usar a variável de ambiente agora que o problema de cache foi resolvido
+  const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
   
   try {
     console.log(`Starting analysis for document: ${documentId}`);
@@ -34,7 +32,6 @@ app.post('/api', async (req, res) => {
     await supabase.from('document_uploads').update({ analysis_status: 'analyzing' }).eq('id', documentId);
 
     console.log('Downloading file from Supabase Storage...');
-    console.log(`[DEBUG] Tentando baixar do caminho: ${document.storage_path}`);
     const { data: fileData, error: downloadError } = await supabase.storage
       .from('documents')
       .download(document.storage_path);
@@ -43,8 +40,14 @@ app.post('/api', async (req, res) => {
     const buffer = Buffer.from(await fileData.arrayBuffer());
     const base64 = buffer.toString('base64');
     
+    // --- CORREÇÃO DE AUTENTICAÇÃO DO DOCUMENT AI ---
     console.log('Extracting text and structure with Google Document AI...');
-    const docAIClient = new DocumentProcessorServiceClient();
+    const docAIClient = new DocumentProcessorServiceClient({
+      apiEndpoint: `${process.env.GCP_LOCATION}-documentai.googleapis.com`,
+      key: process.env.GOOGLE_CLOUD_VISION_API_KEY 
+    });
+    // --- FIM DA CORREÇÃO ---
+    
     const name = `projects/${process.env.GCP_PROJECT_ID}/locations/${process.env.GCP_LOCATION}/processors/${process.env.GCP_PROCESSOR_ID}`;
     const request = {
       name: name,
