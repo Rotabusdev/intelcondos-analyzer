@@ -1,4 +1,4 @@
-// index.js - VERSÃO CORRETA E FINAL
+// index.js - VERSÃO FINALÍSSIMA
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 const axios = require('axios');
@@ -8,18 +8,17 @@ const app = express();
 app.use(express.json());
 
 // --- CONFIGURAÇÃO DE CREDENCIAIS DO GOOGLE ---
-// Pega o conteúdo JSON diretamente da variável de ambiente.
-const gcpSaKeyContent = process.env.GCP_SA_KEY_B64;
-// Verifica se a variável de ambiente existe. Se não, a aplicação falhará ao iniciar.
-if (!gcpSaKeyContent) {
-  throw new Error("FATAL: A variável de ambiente GCP_SA_KEY não foi encontrada ou está vazia.");
+// 1. Lê a variável de ambiente. Os logs mostram que ela contém o JSON.
+const jsonKeyContent = process.env.GCP_SA_KEY_B64; 
+
+if (!jsonKeyContent) {
+  throw new Error("FATAL: A variável de ambiente GCP_SA_KEY_B64 não foi encontrada.");
 }
 
-// Converte o texto JSON em um objeto JavaScript.
-const credentials = JSON.parse(gcpSaKeyContent);
+// 2. Converte o texto JSON em um objeto JavaScript.
+const credentials = JSON.parse(jsonKeyContent);
 
-// Inicializa o cliente do Document AI passando as credenciais diretamente.
-// Este é o método mais seguro e recomendado para ambientes serverless.
+// 3. Inicializa o cliente do Document AI passando as credenciais diretamente.
 const docAIClient = new DocumentProcessorServiceClient({ credentials });
 // --- FIM DA CONFIGURAÇÃO ---
 
