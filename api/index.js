@@ -10,8 +10,7 @@ const app = express();
 app.use(express.json());
 
 app.post('/api', async (req, res) => {
-  console.log('Webhook received! Using production architecture.');
-
+  console.log('Webhook received! Using production architecture.!'); // Forçando redeploy
   const { record: newDocument } = req.body;
   if (!newDocument || !newDocument.id) {
     return res.status(400).send('Document ID is missing');
