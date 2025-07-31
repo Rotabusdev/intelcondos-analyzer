@@ -1,27 +1,46 @@
-// index.js - VERSÃO CORRIGIDA E SIMPLIFICADA
+// index.js - VERSÃO FINAL E CORRIGIDA
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 const axios = require('axios');
 const { DocumentProcessorServiceClient } = require('@google-cloud/documentai').v1;
+const fs = require('fs');
+const path = require('path');
 
 const app = express();
 app.use(express.json());
 
-// A biblioteca do Google usará automaticamente as variáveis de ambiente
-// GCP_PROJECT_ID e GCP_SA_KEY que você configurou na Vercel.
+// Função para configurar as credenciais do Google a partir da variável de ambiente
+function setupGoogleCredentials() {
+  // Usando a variável GCP_SA_KEY que configuramos na Vercel com o JSON puro
+  const jsonKeyContent = process.env.GCP_SA_KEY;
+  
+  if (!jsonKeyContent) {
+    throw new Error("Variável de ambiente GCP_SA_KEY não encontrada ou está vazia.");
+  }
+
+  // Cria um arquivo temporário no ambiente da Vercel para a biblioteca do Google ler
+  const keyFilePath = path.join('/tmp', 'gcp_key.json');
+  fs.writeFileSync(keyFilePath, jsonKeyContent);
+  
+  // Aponta a variável de ambiente padrão para o caminho do nosso arquivo de chave
+  process.env.GOOGLE_APPLICATION_CREDENTIALS = keyFilePath;
+}
+
+// Executa a configuração das credenciais ANTES de inicializar o cliente
+setupGoogleCredentials();
+
+// Agora, o cliente encontrará as credenciais no caminho que definimos
 const docAIClient = new DocumentProcessorServiceClient();
 
 app.post('/api', async (req, res) => {
   console.log('Webhook received! Using production architecture. Final version.');
 
-  // Validação do corpo da requisição
   if (!req.body || !req.body.record || !req.body.record.id) {
     console.error('Invalid webhook payload received.');
     return res.status(400).send('Invalid webhook payload: Document ID is missing');
   }
   const documentId = req.body.record.id;
 
-  // Inicializa o Supabase Client
   const supabase = createClient(
     process.env.SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY,
