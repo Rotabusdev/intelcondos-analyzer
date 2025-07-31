@@ -1,4 +1,4 @@
-// Versão de Produção Final com correção de autenticação
+// Versão de Produção Final com todas as correções
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 const axios = require('axios');
@@ -16,8 +16,11 @@ app.post('/api', async (req, res) => {
   }
   const documentId = newDocument.id;
 
-  // Voltando a usar a variável de ambiente agora que o problema de cache foi resolvido
-  const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+  // --- CORREÇÃO FINAL: Usando a URL fixa que sabemos que funciona ---
+  const supabaseUrl = 'https://tlukxqnwrdxprwyedvlz.supabase.co';
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const supabase = createClient(supabaseUrl, supabaseKey);
+  // --- FIM DA CORREÇÃO ---
   
   try {
     console.log(`Starting analysis for document: ${documentId}`);
@@ -40,13 +43,11 @@ app.post('/api', async (req, res) => {
     const buffer = Buffer.from(await fileData.arrayBuffer());
     const base64 = buffer.toString('base64');
     
-    // --- CORREÇÃO DE AUTENTICAÇÃO DO DOCUMENT AI ---
     console.log('Extracting text and structure with Google Document AI...');
     const docAIClient = new DocumentProcessorServiceClient({
       apiEndpoint: `${process.env.GCP_LOCATION}-documentai.googleapis.com`,
       key: process.env.GOOGLE_CLOUD_VISION_API_KEY 
     });
-    // --- FIM DA CORREÇÃO ---
     
     const name = `projects/${process.env.GCP_PROJECT_ID}/locations/${process.env.GCP_LOCATION}/processors/${process.env.GCP_PROCESSOR_ID}`;
     const request = {
@@ -64,7 +65,6 @@ app.post('/api', async (req, res) => {
       throw new Error('Document AI did not extract any text.');
     }
 
-    // --- LÓGICA DA OPENAI RESTAURADA ---
     console.log(`Text extracted! Length: ${text.length}. Analyzing with OpenAI...`);
     const openaiKey = process.env.OPENAI_API_KEY;
     const openaiResponse = await axios.post(
@@ -88,7 +88,6 @@ app.post('/api', async (req, res) => {
       jsonString = jsonMatch[0];
     }
     const financialData = JSON.parse(jsonString);
-    // --- FIM DA LÓGICA DA OPENAI ---
 
     console.log('Creating financial data record...');
     await supabase.from('financial_analysis').insert({
