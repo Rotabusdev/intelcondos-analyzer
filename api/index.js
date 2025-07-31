@@ -1,4 +1,4 @@
-// index.js - VERSÃO FINALÍSSIMA
+// index.js - VERSÃO FINAL CORRIGIDA (BASE64)
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 const axios = require('axios');
@@ -7,18 +7,21 @@ const { DocumentProcessorServiceClient } = require('@google-cloud/documentai').v
 const app = express();
 app.use(express.json());
 
-// --- CONFIGURAÇÃO DE CREDENCIAIS DO GOOGLE ---
-// 1. Lê a variável de ambiente. Os logs mostram que ela contém o JSON.
-const jsonKeyContent = process.env.GCP_SA_KEY_B64; 
+// --- CONFIGURAÇÃO DE CREDENCIAIS DO GOOGLE (MÉTODO BASE64) ---
+// 1. Lê a variável de ambiente que contém a chave em Base64.
+const base64Key = process.env.GCP_SA_KEY_B64; // Procura pela variável correta
 
-if (!jsonKeyContent) {
-  throw new Error("FATAL: A variável de ambiente GCP_SA_KEY_B64 não foi encontrada.");
+if (!base64Key) {
+  throw new Error("FATAL: A variável de ambiente GCP_SA_KEY_B64 não foi encontrada. Verifique as configurações na Vercel.");
 }
 
-// 2. Converte o texto JSON em um objeto JavaScript.
+// 2. Decodifica a string Base64 de volta para o formato JSON.
+const jsonKeyContent = Buffer.from(base64Key, 'base64').toString('utf8');
+
+// 3. Converte o texto JSON em um objeto JavaScript.
 const credentials = JSON.parse(jsonKeyContent);
 
-// 3. Inicializa o cliente do Document AI passando as credenciais diretamente.
+// 4. Inicializa o cliente do Document AI passando as credenciais diretamente.
 const docAIClient = new DocumentProcessorServiceClient({ credentials });
 // --- FIM DA CONFIGURAÇÃO ---
 
