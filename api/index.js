@@ -34,6 +34,7 @@ app.post('/api', async (req, res) => {
     await supabase.from('document_uploads').update({ analysis_status: 'analyzing' }).eq('id', documentId);
 
     console.log('Downloading file from Supabase Storage...');
+    console.log(`[DEBUG] Tentando baixar do caminho: ${document.storage_path}`);
     const { data: fileData, error: downloadError } = await supabase.storage
       .from('documents')
       .download(document.storage_path);
