@@ -29,7 +29,7 @@ app.post('/api', async (req, res) => {
     if (!base64Key) {
       console.error("ERRO CRÍTICO: A variável de ambiente GCP_SA_KEY não foi encontrada ou está vazia.");
       // Lança um erro claro que será capturado pelo bloco catch.
-      throw new Error("Configuração de credenciais do Google (GCP_SA_KEY) ausente no ambiente.");
+      throw new Error("Configuração de credenciais do Google (GCP_SA_KEY_B64) ausente no ambiente.");
     }
     
     // Decodifica a chave Base64 para o conteúdo JSON.
