@@ -1,4 +1,4 @@
-// CÓDIGO DE TESTE: Verificação de comunicação ponta a ponta
+// CÓDIGO DE TESTE v2: Verificação de comunicação ponta a ponta
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 
@@ -6,7 +6,7 @@ const app = express();
 app.use(express.json());
 
 app.post('/api', async (req, res) => {
-  console.log('--- INICIANDO TESTE DE SAÚDE DA PLATAFORMA ---');
+  console.log('--- INICIANDO TESTE DE SAÚDE DA PLATAFORMA v2---');
   
   // 1. Verificando a comunicação Supabase -> Vercel (Webhook)
   console.log('[PASSO 1/3] Webhook recebido do Supabase com sucesso.');
