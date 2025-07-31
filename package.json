@@ -1,8 +1,7 @@
 {
   "name": "intelcondos-analyzer",
   "version": "1.0.0",
-  "type": "module",
-  "description": "Serviço de análise de documentos para Intelcondos",
+   "description": "Serviço de análise de documentos para Intelcondos",
   "scripts": {
     "start": "node api/index.js",
     "dev": "vercel dev"
