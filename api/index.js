@@ -1,4 +1,4 @@
-// Versão de Produção Final com Autenticação de Conta de Serviço
+// Versão de Produção Final com Autenticação de Conta de Serviço 1
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 const axios = require('axios');
