@@ -10,7 +10,7 @@ const app = express();
 app.use(express.json());
 
 app.post('/api', async (req, res) => {
-  console.log('Webhook received! Using production architecture. Final version.'); // Final version comment
+  console.log('Webhook received! Using production architecture. Final version.');
 
   const { record: newDocument } = req.body;
   if (!newDocument || !newDocument.id) {
@@ -63,7 +63,10 @@ app.post('/api', async (req, res) => {
     console.log('Extracting text with Google Document AI...');
     const docAIClient = new DocumentProcessorServiceClient();
     
-    const name = `projects/${process.env.GCP_PROJECT_ID}/locations/${process.env.GCP_LOCATION}/processors/${process.env.GCP_PROCESSOR_ID}`;
+    // FORÇA BRUTA: Colocando a location diretamente no código para evitar problemas de cache da Vercel
+    const location = 'us'; 
+    const name = `projects/${process.env.GCP_PROJECT_ID}/locations/${location}/processors/${process.env.GCP_PROCESSOR_ID}`;
+    
     const request = {
       name: name,
       rawDocument: {
