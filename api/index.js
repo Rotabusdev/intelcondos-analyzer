@@ -1,24 +1,27 @@
-// Versão de Produção Final e Segura
+// index.js - VERSÃO CORRIGIDA E SIMPLIFICADA
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 const axios = require('axios');
 const { DocumentProcessorServiceClient } = require('@google-cloud/documentai').v1;
-const fs = require('fs');
-const path = require('path');
 
 const app = express();
 app.use(express.json());
 
+// A biblioteca do Google usará automaticamente as variáveis de ambiente
+// GCP_PROJECT_ID e GCP_SA_KEY que você configurou na Vercel.
+const docAIClient = new DocumentProcessorServiceClient();
+
 app.post('/api', async (req, res) => {
   console.log('Webhook received! Using production architecture. Final version.');
 
-  const { record: newDocument } = req.body;
-  if (!newDocument || !newDocument.id) {
-    return res.status(400).send('Document ID is missing');
+  // Validação do corpo da requisição
+  if (!req.body || !req.body.record || !req.body.record.id) {
+    console.error('Invalid webhook payload received.');
+    return res.status(400).send('Invalid webhook payload: Document ID is missing');
   }
-  const documentId = newDocument.id;
+  const documentId = req.body.record.id;
 
-  // Inicializa o Supabase Client com opções para o ambiente Vercel (data-proxy)
+  // Inicializa o Supabase Client
   const supabase = createClient(
     process.env.SUPABASE_URL,
     process.env.SUPABASE_SERVICE_ROLE_KEY,
@@ -26,20 +29,6 @@ app.post('/api', async (req, res) => {
   );
   
   try {
-    // --- CONFIGURAÇÃO DA CONTA DE SERVIÇO DO GOOGLE (MÉTODO BASE64) ---
-    const base64Key = process.env.GCP_SA_KEY_B64;
-    if (!base64Key) {
-      throw new Error("Configuração de credenciais do Google (GCP_SA_KEY_B64) ausente no ambiente.");
-    }
-    
-    const jsonKeyContent = Buffer.from(base64Key, 'base64').toString('utf8');
-    
-    const keyFilePath = path.join('/tmp', 'gcp_key.json');
-    fs.writeFileSync(keyFilePath, jsonKeyContent);
-    
-    process.env.GOOGLE_APPLICATION_CREDENTIALS = keyFilePath;
-    // --- FIM DA CONFIGURAÇÃO ---
-
     console.log(`Starting analysis for document: ${documentId}`);
     
     const { data: document, error: docError } = await supabase
@@ -47,7 +36,9 @@ app.post('/api', async (req, res) => {
       .select('id, storage_path, condominium_id, file_type')
       .eq('id', documentId)
       .single();
-    if (docError) throw docError;
+
+    if (docError) throw new Error(`Error fetching document from Supabase: ${docError.message}`);
+    if (!document) throw new Error(`Document with ID ${documentId} not found.`);
 
     await supabase.from('document_uploads').update({ analysis_status: 'analyzing' }).eq('id', documentId);
 
@@ -55,17 +46,14 @@ app.post('/api', async (req, res) => {
     const { data: fileData, error: downloadError } = await supabase.storage
       .from('documents')
       .download(document.storage_path);
-    if (downloadError) throw downloadError;
+    if (downloadError) throw new Error(`Error downloading file from Supabase: ${downloadError.message}`);
     
     const buffer = Buffer.from(await fileData.arrayBuffer());
     const encodedFile = buffer.toString('base64');
     
     console.log('Extracting text with Google Document AI...');
-    const docAIClient = new DocumentProcessorServiceClient();
     
-    // FORÇA BRUTA: Colocando a location diretamente no código para evitar problemas de cache da Vercel
-    const location = 'us'; 
-    const name = `projects/${process.env.GCP_PROJECT_ID}/locations/${location}/processors/${process.env.GCP_PROCESSOR_ID}`;
+    const name = `projects/${process.env.GCP_PROJECT_ID}/locations/${process.env.GCP_LOCATION}/processors/${process.env.GCP_PROCESSOR_ID}`;
     
     const request = {
       name: name,
@@ -89,7 +77,7 @@ app.post('/api', async (req, res) => {
       {
         model: 'gpt-4o-mini',
         messages: [
-          { role: 'system', content: `Você é um especialista em análise de documentos financeiros de condomínios. Analise o texto extraído e retorne APENAS um JSON válido com os seguintes campos: {"total_revenue": número,"total_expenses": número,"reserve_fund": número,"default_amount": número,"cost_per_unit": número,"personnel_expense_percentage": número,"reference_month": número (1-12 ),"reference_year": número}. Extraia apenas valores numéricos reais do documento. Se um campo não for encontrado, use 0.` },
+          { role: 'system', content: `Você é um especialista em análise de documentos financeiros de condomínios. Analise o texto extraído e retorne APENAS um JSON válido com os seguintes campos: {"total_revenue": número,"total_expenses": número,"reserve_fund": número,"default_amount": número,"cost_per_unit": número,"personnel_expense_percentage": número,"reference_month": número (1-12  ),"reference_year": número}. Extraia apenas valores numéricos reais do documento. Se um campo não for encontrado, use 0.` },
           { role: 'user', content: `Analise este documento financeiro de condomínio:\n\n${text}` }
         ],
         temperature: 0.1,
@@ -117,7 +105,7 @@ app.post('/api', async (req, res) => {
     res.status(200).send({ success: true, message: 'Analysis completed successfully' });
 
   } catch (error) {
-    console.error("Analysis error:", error.response?.data || error.stack || error.message);
+    console.error("Analysis error:", error.stack || error.message);
     await supabase.from("document_uploads").update({ analysis_status: "failed" }).eq("id", documentId);
     res.status(500).send({ success: false, error: error.message });
   }
