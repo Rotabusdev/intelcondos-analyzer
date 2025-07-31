@@ -10,7 +10,7 @@ const app = express();
 app.use(express.json());
 
 app.post('/api', async (req, res) => {
-  console.log('Webhook received! Using production architecture.!'); // Forçando redeploy
+  console.log('Webhook received! Using production architecture.');
 
   const { record: newDocument } = req.body;
   if (!newDocument || !newDocument.id) {
@@ -18,23 +18,27 @@ app.post('/api', async (req, res) => {
   }
   const documentId = newDocument.id;
 
-  // Inicializa o Supabase Client fora do try/catch para poder usá-lo no bloco catch
-  const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+  // Inicializa o Supabase Client com opções para o ambiente Vercel (data-proxy)
+  const supabase = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY,
+    { db: { schema: 'public' }, auth: { autoRefreshToken: false, persistSession: false } }
+  );
   
   try {
-    // --- CONFIGURAÇÃO DA CONTA DE SERVIÇO DO GOOGLE (MÉTODO BASE64) ---
+    // --- CONFIGURAÇÃO DA CONTA DE SERVIÇO DO GOOGLE (MÉTODO VARIÁVEL DE AMBIENTE DIRETA) ---
+    // Usa a variável GOOGLE_CREDENTIALS que a Vercel injeta automaticamente.
     const jsonKeyContent = process.env.GOOGLE_CREDENTIALS;
-if (!jsonKeyContent) {
-  throw new Error("Configuração de credenciais do Google (GOOGLE_CREDENTIALS) ausente no ambiente.");
-}
-// NÃO PRECISA DECODIFICAR BASE64, pois a Vercel já está enviando o JSON puro.
+    if (!jsonKeyContent) {
+      throw new Error("Configuração de credenciais do Google (GOOGLE_CREDENTIALS) ausente no ambiente.");
+    }
+    // NÃO PRECISA DECODIFICAR BASE64, pois a Vercel já está enviando o JSON puro.
     
     // A Vercel permite escrever arquivos temporários no diretório /tmp.
     const keyFilePath = path.join('/tmp', 'gcp_key.json');
     fs.writeFileSync(keyFilePath, jsonKeyContent);
     
     // Aponta a variável de ambiente padrão da Google para o arquivo de chave temporário.
-    // As bibliotecas do Google Cloud encontrarão e usarão este arquivo automaticamente.
     process.env.GOOGLE_APPLICATION_CREDENTIALS = keyFilePath;
     // --- FIM DA CONFIGURAÇÃO ---
 
@@ -59,8 +63,6 @@ if (!jsonKeyContent) {
     const encodedFile = buffer.toString('base64');
     
     console.log('Extracting text with Google Document AI...');
-    // Inicializa o cliente do Document AI. Ele usará as credenciais definidas
-    // na variável de ambiente GOOGLE_APPLICATION_CREDENTIALS.
     const docAIClient = new DocumentProcessorServiceClient();
     
     const name = `projects/${process.env.GCP_PROJECT_ID}/locations/${process.env.GCP_LOCATION}/processors/${process.env.GCP_PROCESSOR_ID}`;
@@ -86,11 +88,11 @@ if (!jsonKeyContent) {
       {
         model: 'gpt-4o-mini',
         messages: [
-          { role: 'system', content: `Você é um especialista em análise de documentos financeiros de condomínios. Analise o texto extraído e retorne APENAS um JSON válido com os seguintes campos: {"total_revenue": número,"total_expenses": número,"reserve_fund": número,"default_amount": número,"cost_per_unit": número,"personnel_expense_percentage": número,"reference_month": número (1-12  ),"reference_year": número}. Extraia apenas valores numéricos reais do documento. Se um campo não for encontrado, use 0.` },
+          { role: 'system', content: `Você é um especialista em análise de documentos financeiros de condomínios. Analise o texto extraído e retorne APENAS um JSON válido com os seguintes campos: {"total_revenue": número,"total_expenses": número,"reserve_fund": número,"default_amount": número,"cost_per_unit": número,"personnel_expense_percentage": número,"reference_month": número (1-12   ),"reference_year": número}. Extraia apenas valores numéricos reais do documento. Se um campo não for encontrado, use 0.` },
           { role: 'user', content: `Analise este documento financeiro de condomínio:\n\n${text}` }
         ],
         temperature: 0.1,
-        response_format: { type: "json_object" } // Garante que a resposta seja JSON
+        response_format: { type: "json_object" }
       },
       { headers: { 'Authorization': `Bearer ${openaiKey}` } }
     );
@@ -115,7 +117,6 @@ if (!jsonKeyContent) {
 
   } catch (error) {
     console.error("Analysis error:", error.response?.data || error.stack || error.message);
-    // Garante que o status seja atualizado para 'failed' em caso de qualquer erro no bloco try
     await supabase.from("document_uploads").update({ analysis_status: "failed" }).eq("id", documentId);
     res.status(500).send({ success: false, error: error.message });
   }
