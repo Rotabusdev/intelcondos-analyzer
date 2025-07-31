@@ -1,4 +1,4 @@
-// Versão de Produção Final com Autenticação de Conta de Serviço 1
+// Versão de Produção Final e Segura
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 const axios = require('axios');
@@ -10,7 +10,7 @@ const app = express();
 app.use(express.json());
 
 app.post('/api', async (req, res) => {
-  console.log('Webhook received! Using Service Account Auth.');
+  console.log('Webhook received! Using production architecture.');
 
   const { record: newDocument } = req.body;
   if (!newDocument || !newDocument.id) {
@@ -21,10 +21,15 @@ app.post('/api', async (req, res) => {
   const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
   
   try {
-    // --- CONFIGURAÇÃO DA CONTA DE SERVIÇO DO GOOGLE ---
+    // --- CONFIGURAÇÃO DA CONTA DE SERVIÇO DO GOOGLE (MÉTODO BASE64) ---
+    const base64Key = process.env.GCP_SA_KEY;
+    const jsonKeyContent = Buffer.from(base64Key, 'base64').toString('utf8');
+    
     // A Vercel permite escrever em /tmp
     const keyFilePath = path.join('/tmp', 'gcp_key.json');
-    fs.writeFileSync(keyFilePath, process.env.GCP_SA_KEY);
+    fs.writeFileSync(keyFilePath, jsonKeyContent);
+    
+    // Diz para a biblioteca do Google onde encontrar este arquivo de credenciais
     process.env.GOOGLE_APPLICATION_CREDENTIALS = keyFilePath;
     // --- FIM DA CONFIGURAÇÃO ---
 
@@ -49,7 +54,7 @@ app.post('/api', async (req, res) => {
     const base64 = buffer.toString('base64');
     
     console.log('Extracting text with Google Document AI...');
-    // Agora o cliente é inicializado sem argumentos, ele encontrará as credenciais automaticamente.
+    // Inicializa o cliente sem argumentos; ele encontrará as credenciais automaticamente
     const docAIClient = new DocumentProcessorServiceClient();
     
     const name = `projects/${process.env.GCP_PROJECT_ID}/locations/${process.env.GCP_LOCATION}/processors/${process.env.GCP_PROCESSOR_ID}`;
