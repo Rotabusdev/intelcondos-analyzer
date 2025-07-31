@@ -1,4 +1,4 @@
-// index.js - VERSÃO FINAL COM TRATAMENTO DE ESCAPE
+// index.js - VERSÃO FINAL LENDO A CHAVE DO SUPABASE
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 const axios = require('axios');
@@ -7,42 +7,55 @@ const { DocumentProcessorServiceClient } = require('@google-cloud/documentai').v
 const app = express();
 app.use(express.json());
 
-// --- CONFIGURAÇÃO DE CREDENCIAIS DO GOOGLE (MÉTODO FORÇA BRUTA) ---
-// 1. Lê a variável de ambiente.
-const rawJsonKey = process.env.GCP_SA_KEY_B64; 
+// Função assíncrona para inicializar o cliente do Google
+async function initializeDocAIClient() {
+  // 1. Cria um cliente Supabase SÓ para buscar a chave.
+  const supabaseAdmin = createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+  );
 
-if (!rawJsonKey) {
-  throw new Error("FATAL: A variável de ambiente GCP_SA_KEY_B64 não foi encontrada.");
+  // 2. Busca a chave secreta da sua nova tabela.
+  console.log("Buscando a chave secreta do Supabase...");
+  const { data: secret, error } = await supabaseAdmin
+    .from('app_secrets')
+    .select('value')
+    .eq('name', 'gcp_service_account_key')
+    .single();
+
+  if (error || !secret) {
+    console.error("Erro ao buscar a chave do Supabase:", error);
+    throw new Error("FATAL: Não foi possível carregar a chave de serviço do Google a partir do Supabase.");
+  }
+  console.log("Chave secreta do Supabase carregada com sucesso.");
+
+  // 3. A chave já vem como um objeto JSON, pronta para ser usada.
+  const credentials = secret.value;
+
+  // 4. Retorna um cliente do Document AI devidamente autenticado.
+  return new DocumentProcessorServiceClient({ credentials });
 }
-
-// 2. O problema: A Vercel ou o Node.js interpreta mal as quebras de linha (\n) dentro da chave privada.
-// A SOLUÇÃO: Substituímos manualmente o caractere de nova linha por sua versão de escape literal (\\n).
-const sanitizedJsonKey = rawJsonKey.replace(/\\n/g, '\\n');
-
-// 3. Agora, o JSON.parse() conseguirá ler a string sem erros de escape.
-const credentials = JSON.parse(sanitizedJsonKey);
-
-// 4. Inicializa o cliente do Document AI passando as credenciais diretamente.
-const docAIClient = new DocumentProcessorServiceClient({ credentials });
-// --- FIM DA CONFIGURAÇÃO ---
 
 
 app.post('/api', async (req, res) => {
-  console.log('Webhook received! Using production architecture. Final version.');
-
-  if (!req.body || !req.body.record || !req.body.record.id) {
-    console.error('Invalid webhook payload received.');
-    return res.status(400).send('Invalid webhook payload: Document ID is missing');
-  }
-  const documentId = req.body.record.id;
-
-  const supabase = createClient(
-    process.env.SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY,
-    { db: { schema: 'public' }, auth: { autoRefreshToken: false, persistSession: false } }
-  );
-  
   try {
+    // A inicialização agora acontece dentro da requisição
+    const docAIClient = await initializeDocAIClient();
+    
+    console.log('Webhook received! Using production architecture. Final version.');
+
+    if (!req.body || !req.body.record || !req.body.record.id) {
+      console.error('Invalid webhook payload received.');
+      return res.status(400).send('Invalid webhook payload: Document ID is missing');
+    }
+    const documentId = req.body.record.id;
+
+    const supabase = createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY,
+      { db: { schema: 'public' }, auth: { autoRefreshToken: false, persistSession: false } }
+    );
+    
     console.log(`Starting analysis for document: ${documentId}`);
     
     const { data: document, error: docError } = await supabase
@@ -120,7 +133,10 @@ app.post('/api', async (req, res) => {
 
   } catch (error) {
     console.error("Analysis error:", error.stack || error.message);
-    await supabase.from("document_uploads").update({ analysis_status: "failed" }).eq("id", documentId);
+    if (req.body && req.body.record && req.body.record.id) {
+        const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+        await supabase.from("document_uploads").update({ analysis_status: "failed" }).eq("id", req.body.record.id);
+    }
     res.status(500).send({ success: false, error: error.message });
   }
 });
