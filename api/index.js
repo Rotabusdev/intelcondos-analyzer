@@ -1,4 +1,4 @@
-// index.js - VERSÃO FINAL CORRIGIDA (BASE64)
+// index.js - VERSÃO FINAL COM TRATAMENTO DE ESCAPE
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 const axios = require('axios');
@@ -7,19 +7,20 @@ const { DocumentProcessorServiceClient } = require('@google-cloud/documentai').v
 const app = express();
 app.use(express.json());
 
-// --- CONFIGURAÇÃO DE CREDENCIAIS DO GOOGLE (MÉTODO BASE64) ---
-// 1. Lê a variável de ambiente que contém a chave em Base64.
-const base64Key = process.env.GCP_SA_KEY_B64; // Procura pela variável correta
+// --- CONFIGURAÇÃO DE CREDENCIAIS DO GOOGLE (MÉTODO FORÇA BRUTA) ---
+// 1. Lê a variável de ambiente.
+const rawJsonKey = process.env.GCP_SA_KEY_B64; 
 
-if (!base64Key) {
-  throw new Error("FATAL: A variável de ambiente GCP_SA_KEY_B64 não foi encontrada. Verifique as configurações na Vercel.");
+if (!rawJsonKey) {
+  throw new Error("FATAL: A variável de ambiente GCP_SA_KEY_B64 não foi encontrada.");
 }
 
-// 2. Decodifica a string Base64 de volta para o formato JSON.
-const jsonKeyContent = Buffer.from(base64Key, 'base64').toString('utf8');
+// 2. O problema: A Vercel ou o Node.js interpreta mal as quebras de linha (\n) dentro da chave privada.
+// A SOLUÇÃO: Substituímos manualmente o caractere de nova linha por sua versão de escape literal (\\n).
+const sanitizedJsonKey = rawJsonKey.replace(/\\n/g, '\\n');
 
-// 3. Converte o texto JSON em um objeto JavaScript.
-const credentials = JSON.parse(jsonKeyContent);
+// 3. Agora, o JSON.parse() conseguirá ler a string sem erros de escape.
+const credentials = JSON.parse(sanitizedJsonKey);
 
 // 4. Inicializa o cliente do Document AI passando as credenciais diretamente.
 const docAIClient = new DocumentProcessorServiceClient({ credentials });
