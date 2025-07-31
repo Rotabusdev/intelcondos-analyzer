@@ -1,14 +1,16 @@
-// Versão de Produção Final com todas as correções
+// Versão de Produção Final com Autenticação de Conta de Serviço
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 const axios = require('axios');
 const { DocumentProcessorServiceClient } = require('@google-cloud/documentai').v1;
+const fs = require('fs');
+const path = require('path');
 
 const app = express();
 app.use(express.json());
 
 app.post('/api', async (req, res) => {
-  console.log('Webhook received! Using Document AI architecture.');
+  console.log('Webhook received! Using Service Account Auth.');
 
   const { record: newDocument } = req.body;
   if (!newDocument || !newDocument.id) {
@@ -16,13 +18,16 @@ app.post('/api', async (req, res) => {
   }
   const documentId = newDocument.id;
 
-  // --- CORREÇÃO FINAL: Usando a URL fixa que sabemos que funciona ---
-  const supabaseUrl = 'https://tlukxqnwrdxprwyedvlz.supabase.co';
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const supabase = createClient(supabaseUrl, supabaseKey);
-  // --- FIM DA CORREÇÃO ---
+  const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
   
   try {
+    // --- CONFIGURAÇÃO DA CONTA DE SERVIÇO DO GOOGLE ---
+    // A Vercel permite escrever em /tmp
+    const keyFilePath = path.join('/tmp', 'gcp_key.json');
+    fs.writeFileSync(keyFilePath, process.env.GCP_SA_KEY);
+    process.env.GOOGLE_APPLICATION_CREDENTIALS = keyFilePath;
+    // --- FIM DA CONFIGURAÇÃO ---
+
     console.log(`Starting analysis for document: ${documentId}`);
     
     const { data: document, error: docError } = await supabase
@@ -43,11 +48,9 @@ app.post('/api', async (req, res) => {
     const buffer = Buffer.from(await fileData.arrayBuffer());
     const base64 = buffer.toString('base64');
     
-    console.log('Extracting text and structure with Google Document AI...');
-    const docAIClient = new DocumentProcessorServiceClient({
-      apiEndpoint: `${process.env.GCP_LOCATION}-documentai.googleapis.com`,
-      key: process.env.GOOGLE_CLOUD_VISION_API_KEY 
-    });
+    console.log('Extracting text with Google Document AI...');
+    // Agora o cliente é inicializado sem argumentos, ele encontrará as credenciais automaticamente.
+    const docAIClient = new DocumentProcessorServiceClient();
     
     const name = `projects/${process.env.GCP_PROJECT_ID}/locations/${process.env.GCP_LOCATION}/processors/${process.env.GCP_PROCESSOR_ID}`;
     const request = {
