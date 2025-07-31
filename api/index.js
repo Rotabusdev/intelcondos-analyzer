@@ -23,17 +23,11 @@ app.post('/api', async (req, res) => {
   
   try {
     // --- CONFIGURAÇÃO DA CONTA DE SERVIÇO DO GOOGLE (MÉTODO BASE64) ---
-    const base64Key = process.env.GCP_SA_KEY_B64;
-
-    // VERIFICAÇÃO DE SEGURANÇA: Garante que a variável de ambiente existe antes de usá-la.
-    if (!base64Key) {
-      console.error("ERRO CRÍTICO: A variável de ambiente GCP_SA_KEY não foi encontrada ou está vazia.");
-      // Lança um erro claro que será capturado pelo bloco catch.
-      throw new Error("Configuração de credenciais do Google (GCP_SA_KEY_B64) ausente no ambiente.");
-    }
-    
-    // Decodifica a chave Base64 para o conteúdo JSON.
-    const jsonKeyContent = Buffer.from(base64Key, 'base64').toString('utf8');
+    const jsonKeyContent = process.env.GOOGLE_CREDENTIALS;
+if (!jsonKeyContent) {
+  throw new Error("Configuração de credenciais do Google (GOOGLE_CREDENTIALS) ausente no ambiente.");
+}
+// NÃO PRECISA DECODIFICAR BASE64, pois a Vercel já está enviando o JSON puro.
     
     // A Vercel permite escrever arquivos temporários no diretório /tmp.
     const keyFilePath = path.join('/tmp', 'gcp_key.json');
