@@ -9,8 +9,7 @@ app.use(express.json());
 
 // --- CONFIGURAÇÃO DE CREDENCIAIS DO GOOGLE ---
 // Pega o conteúdo JSON diretamente da variável de ambiente.
-const gcpSaKeyContent = process.env.GCP_SA_KEY;
-
+const gcpSaKeyContent = process.env.GCP_SA_KEY_B64;
 // Verifica se a variável de ambiente existe. Se não, a aplicação falhará ao iniciar.
 if (!gcpSaKeyContent) {
   throw new Error("FATAL: A variável de ambiente GCP_SA_KEY não foi encontrada ou está vazia.");
