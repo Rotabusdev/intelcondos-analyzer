@@ -10,8 +10,7 @@ const app = express();
 app.use(express.json());
 
 app.post('/api', async (req, res) => {
-  console.log('Webhook received! Using production architecture.');
-  console.log('Webhook received! Using production architecture.');
+  console.log('Webhook received! Using production architecture. Final version.'); // Final version comment
 
   const { record: newDocument } = req.body;
   if (!newDocument || !newDocument.id) {
@@ -25,21 +24,14 @@ app.post('/api', async (req, res) => {
     process.env.SUPABASE_SERVICE_ROLE_KEY,
     { db: { schema: 'public' }, auth: { autoRefreshToken: false, persistSession: false } }
   );
-  // Inicializa o Supabase Client com opções para o ambiente Vercel (data-proxy)
-  const supabase = createClient(
-    process.env.SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY,
-    { db: { schema: 'public' }, auth: { autoRefreshToken: false, persistSession: false } }
-  );
   
   try {
     // --- CONFIGURAÇÃO DA CONTA DE SERVIÇO DO GOOGLE (MÉTODO BASE64) ---
-    const base64Key = process.env.GCP_SA_KEY_B64; // <-- USA A VARIÁVEL CORRETA
+    const base64Key = process.env.GCP_SA_KEY_B64;
     if (!base64Key) {
       throw new Error("Configuração de credenciais do Google (GCP_SA_KEY_B64) ausente no ambiente.");
     }
     
-    // Decodifica a chave Base64 para o conteúdo JSON.
     const jsonKeyContent = Buffer.from(base64Key, 'base64').toString('utf8');
     
     const keyFilePath = path.join('/tmp', 'gcp_key.json');
@@ -94,12 +86,10 @@ app.post('/api', async (req, res) => {
       {
         model: 'gpt-4o-mini',
         messages: [
-          { role: 'system', content: `Você é um especialista em análise de documentos financeiros de condomínios. Analise o texto extraído e retorne APENAS um JSON válido com os seguintes campos: {"total_revenue": número,"total_expenses": número,"reserve_fund": número,"default_amount": número,"cost_per_unit": número,"personnel_expense_percentage": número,"reference_month": número (1-12   ),"reference_year": número}. Extraia apenas valores numéricos reais do documento. Se um campo não for encontrado, use 0.` },
-          { role: 'system', content: `Você é um especialista em análise de documentos financeiros de condomínios. Analise o texto extraído e retorne APENAS um JSON válido com os seguintes campos: {"total_revenue": número,"total_expenses": número,"reserve_fund": número,"default_amount": número,"cost_per_unit": número,"personnel_expense_percentage": número,"reference_month": número (1-12   ),"reference_year": número}. Extraia apenas valores numéricos reais do documento. Se um campo não for encontrado, use 0.` },
+          { role: 'system', content: `Você é um especialista em análise de documentos financeiros de condomínios. Analise o texto extraído e retorne APENAS um JSON válido com os seguintes campos: {"total_revenue": número,"total_expenses": número,"reserve_fund": número,"default_amount": número,"cost_per_unit": número,"personnel_expense_percentage": número,"reference_month": número (1-12 ),"reference_year": número}. Extraia apenas valores numéricos reais do documento. Se um campo não for encontrado, use 0.` },
           { role: 'user', content: `Analise este documento financeiro de condomínio:\n\n${text}` }
         ],
         temperature: 0.1,
-        response_format: { type: "json_object" }
         response_format: { type: "json_object" }
       },
       { headers: { 'Authorization': `Bearer ${openaiKey}` } }
