@@ -1,36 +1,29 @@
-// index.js - VERSÃO FINAL E CORRIGIDA
+// index.js - VERSÃO CORRETA E FINAL
 const express = require('express');
 const { createClient } = require('@supabase/supabase-js');
 const axios = require('axios');
 const { DocumentProcessorServiceClient } = require('@google-cloud/documentai').v1;
-const fs = require('fs');
-const path = require('path');
 
 const app = express();
 app.use(express.json());
 
-// Função para configurar as credenciais do Google a partir da variável de ambiente
-function setupGoogleCredentials() {
-  // Usando a variável GCP_SA_KEY que configuramos na Vercel com o JSON puro
-  const jsonKeyContent = process.env.GCP_SA_KEY;
-  
-  if (!jsonKeyContent) {
-    throw new Error("Variável de ambiente GCP_SA_KEY não encontrada ou está vazia.");
-  }
+// --- CONFIGURAÇÃO DE CREDENCIAIS DO GOOGLE ---
+// Pega o conteúdo JSON diretamente da variável de ambiente.
+const gcpSaKeyContent = process.env.GCP_SA_KEY;
 
-  // Cria um arquivo temporário no ambiente da Vercel para a biblioteca do Google ler
-  const keyFilePath = path.join('/tmp', 'gcp_key.json');
-  fs.writeFileSync(keyFilePath, jsonKeyContent);
-  
-  // Aponta a variável de ambiente padrão para o caminho do nosso arquivo de chave
-  process.env.GOOGLE_APPLICATION_CREDENTIALS = keyFilePath;
+// Verifica se a variável de ambiente existe. Se não, a aplicação falhará ao iniciar.
+if (!gcpSaKeyContent) {
+  throw new Error("FATAL: A variável de ambiente GCP_SA_KEY não foi encontrada ou está vazia.");
 }
 
-// Executa a configuração das credenciais ANTES de inicializar o cliente
-setupGoogleCredentials();
+// Converte o texto JSON em um objeto JavaScript.
+const credentials = JSON.parse(gcpSaKeyContent);
 
-// Agora, o cliente encontrará as credenciais no caminho que definimos
-const docAIClient = new DocumentProcessorServiceClient();
+// Inicializa o cliente do Document AI passando as credenciais diretamente.
+// Este é o método mais seguro e recomendado para ambientes serverless.
+const docAIClient = new DocumentProcessorServiceClient({ credentials });
+// --- FIM DA CONFIGURAÇÃO ---
+
 
 app.post('/api', async (req, res) => {
   console.log('Webhook received! Using production architecture. Final version.');
